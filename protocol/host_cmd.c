@@ -157,6 +157,7 @@ static int validate_ec_response_header(
 int libhoth_hostcmd_exec(struct libhoth_device* dev, uint16_t command, uint8_t version,
                  const void* req_payload, size_t req_payload_size,
                  void* resp_buf, size_t resp_buf_size, size_t* out_resp_size) {
+
   struct {
     struct hoth_host_request hdr;
     uint8_t payload_buf[LIBHOTH_MAILBOX_SIZE - sizeof(struct hoth_host_request)];
@@ -197,7 +198,14 @@ int libhoth_hostcmd_exec(struct libhoth_device* dev, uint16_t command, uint8_t v
     return -1;
   }
   if (resp.hdr.result != HOTH_RES_SUCCESS) {
-    fprintf(stderr, "EC response contained error: %d\n", resp.hdr.result);
+    fprintf(stderr, "EC response contained error: %d", resp.hdr.result);
+    if (resp.hdr.data_len >= 4) {
+      uint32_t error_code;
+      memcpy(&error_code, resp.payload_buf, sizeof(error_code));
+      fprintf(stderr, " (extended: 0x%08x)\n", error_code);
+    } else {
+      fprintf(stderr, "\n");
+    }
     return HTOOL_ERROR_HOST_COMMAND_START + resp.hdr.result;
   }
 
